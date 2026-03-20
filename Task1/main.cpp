@@ -81,7 +81,7 @@ std::vector<std::vector<std::pair<int, int>>> generateGraph() {
 void printGraph(std::vector<std::vector<std::pair<int, int>>>& graph, std::ostream& out = std::cout) {
     int i = 0;
     for (const auto& row : graph) {
-        out << i++ << " " << row.size() << " ";
+        out <<"T"<< i++ << " " << row.size() << " ";
         for (const auto& [target, weight] : row) {
             out << target << "(" << weight << ") ";
         }
@@ -196,7 +196,7 @@ std::vector<std::vector<int>> printBus(std::ostream& out = std::cout) {
 
     // printing
     for (int i = 0; i < input::bus; i++) {
-        out << "chan" << i << " ";
+        out << "CHAN" << i << " ";
         for (int j = 0; j < 2 + input::hc + input::pp; j++) {
             out << bus[i][j] << " ";
         }
@@ -214,19 +214,15 @@ void generateOutput(std::vector<std::vector<std::pair<int, int>>>& graph) {
     }
     output << "@tasks " << input::tasks << std::endl ;
     printGraph(graph, output);
-    output << std::endl;
 
     output << "@proc " << input::hc + input::pp << std::endl;
     std::vector<Processor> processors = printProcessors(output);
-    output << std::endl;
 
     output << "@times" << std::endl;
     printTimes(processors, output);
-    output << std::endl;
 
     output << "@cost" << std::endl;
     printCosts(processors, output);
-    output << std::endl;
 
     output << "@comm " << input::bus << std::endl;
     printBus(output);
