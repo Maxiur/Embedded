@@ -13,15 +13,15 @@ struct Processor {
 };
 
 struct Channel {
-    int cost;
-    int bandwidth;
+    int cost{};
+    int bandwidth{};
     std::vector<int> connected_processor;
 };
 
 struct TaskGraph {
-    int tasks;
-    int proc;
-    int bus;
+    int tasks{};
+    int proc{};
+    int bus{};
 
     std::vector<std::vector<Edge>> graph;
     std::vector<Processor> processors;
@@ -42,7 +42,7 @@ TaskGraph readGraph(const std::string& file_name) {
     std::string trash_string;
     char trash_char;
 
-    // Zadania graf (@tasks)
+    // Zadania (@tasks)
     input >> trash_string >> graph.tasks;
     graph.graph.resize(graph.tasks);
 
@@ -100,7 +100,6 @@ TaskGraph readGraph(const std::string& file_name) {
     }
 
     return graph;
-
 }
 
 int main() {
