@@ -102,11 +102,47 @@ TaskGraph readGraph(const std::string& file_name) {
     return graph;
 }
 
+void addEdge(TaskGraph& graph) {
+    
+}
+
+int LowestTime(TaskGraph& graph) {
+    std::vector<int> TaskProcessors(graph.tasks);
+    std::vector<int> TaskTimes(graph.tasks);
+
+    for (int i = 0; i < graph.tasks; i++) {
+        int min_time = INT_MAX;
+        int min_proc = -1;
+        for (int j = 0; j < graph.proc; j++) {
+            if (graph.times[i][j] != -1 && min_time > graph.times[i][j]) {
+                min_time = graph.times[i][j];
+                min_proc = j;
+            }
+        }
+        TaskProcessors[i] = min_proc;
+        TaskTimes[i] = min_time;
+    }
+
+    // for (const auto& proc : TaskProcessors) {
+    //     std::cout << proc << " ";
+    // }
+    //
+    // std::cout << std::endl;
+    //
+    // for (const auto& time : TaskTimes) {
+    //     std::cout << time << " ";
+    // }
+
+
+    return 0;
+}
+
+
 int main() {
     std::string input= "../input.txt";
     TaskGraph system = readGraph(input);
 
-
+    int time = LowestTime(system);
 
     return 0;
 }
