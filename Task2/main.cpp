@@ -1,6 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <queue>
+#include <climits>
 
 struct Edge {
     int target;
@@ -102,10 +104,43 @@ TaskGraph readGraph(const std::string& file_name) {
     return graph;
 }
 
-void addEdge(TaskGraph& graph) {
-    
-}
+std::vector<int> BFS(TaskGraph& graph, std::vector<int>& TaskTimes) {
+    std::vector in_degree(graph.tasks, 0);
 
+    for (int i = 0; i < graph.tasks; ++i) {
+        for (const auto& edge : graph.graph[i]) {
+            in_degree[edge.target]++;
+        }
+    }
+
+    std::queue<int> queue;
+    for (int i = 0; i < graph.tasks; ++i) {
+        if (in_degree[i] == 0) {
+            queue.push(i);
+        }
+    }
+
+    std::vector<int> topological_sort;
+    std::vector times(graph.tasks, 0);
+    std::vector task_start_time(graph.tasks, 0);
+    int time = 0;
+
+    while (!queue.empty()) {
+        int current = queue.front();
+        queue.pop();
+        topological_sort.push_back(current);
+        times[current] += TaskTimes[current];
+        task_start_time[current] = time;
+
+        for (const auto& edge : graph.graph[current]) {
+            in_degree[edge.target]--;
+            if (in_degree[edge.target] == 0) {
+                queue.push(edge.target);
+            }
+        }
+    }
+    return topological_sort;
+}
 int LowestTime(TaskGraph& graph) {
     std::vector<int> TaskProcessors(graph.tasks);
     std::vector<int> TaskTimes(graph.tasks);
@@ -122,17 +157,7 @@ int LowestTime(TaskGraph& graph) {
         TaskProcessors[i] = min_proc;
         TaskTimes[i] = min_time;
     }
-
-    // for (const auto& proc : TaskProcessors) {
-    //     std::cout << proc << " ";
-    // }
-    //
-    // std::cout << std::endl;
-    //
-    // for (const auto& time : TaskTimes) {
-    //     std::cout << time << " ";
-    // }
-
+    std::vector<int> topological_sort = BFS(graph, TaskTimes);
 
     return 0;
 }
