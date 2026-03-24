@@ -201,7 +201,9 @@ int CalculateCost(const TaskGraph& graph, const std::vector<int>& TaskProcessors
 }
 
 int main() {
-    std::string input= "../GRAF.200.txt";
+    // std::string input= "../GRAF.200.txt";
+    std::string input;
+    std::cin >> input;
     TaskGraph graph = readGraph(input);
 
     auto [TaskProcessors, TaskTimes] = LowestTime(graph);
