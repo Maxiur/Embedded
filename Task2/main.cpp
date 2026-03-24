@@ -5,6 +5,7 @@
 #include <climits>
 #include <algorithm>
 #include <utility>
+#include <string>
 
 struct Edge {
     int target;
@@ -123,7 +124,7 @@ std::pair<std::vector<int>, std::vector<int>> LowestTime(const TaskGraph& graph)
         TaskTimes[i] = min_time;
     }
 
-    return {TaskProcessors, TaskTimes};
+    return { TaskProcessors, TaskTimes };
 }
 
 std::tuple<std::vector<int>, std::vector<int>, int> BFS(const TaskGraph& graph, const std::vector<int>& TaskTimes, const std::vector<int>& TaskProcessors) {
@@ -166,7 +167,7 @@ std::tuple<std::vector<int>, std::vector<int>, int> BFS(const TaskGraph& graph, 
             }
         }
     }
-    return {task_start_time, task_finish_time, makespan};
+    return { task_start_time, task_finish_time, makespan };
 }
 
 int CalculateCost(const TaskGraph& graph, const std::vector<int>& TaskProcessors) {
@@ -190,7 +191,8 @@ int CalculateCost(const TaskGraph& graph, const std::vector<int>& TaskProcessors
             if (pe_usage[p] > 0 && graph.channels[c].connected_processor[p] == 1) {
                 if (graph.processors[p].type == 1) {
                     total_cost += graph.channels[c].cost;
-                } else {
+                }
+                else {
                     total_cost += graph.channels[c].cost * pe_usage[p];
                 }
             }
@@ -201,8 +203,8 @@ int CalculateCost(const TaskGraph& graph, const std::vector<int>& TaskProcessors
 }
 
 int main() {
-    // std::string input= "../GRAF.200.txt";
     std::string input;
+    std::cout << "Podaj nazwe pliku wejsciowego (razem z .txt): " << std::endl;
     std::cin >> input;
     TaskGraph graph = readGraph(input);
 
@@ -221,7 +223,8 @@ int main() {
         std::string prefix;
         if (graph.processors[p].type == 0) {
             prefix = "HC" + std::to_string(hc_counter++);
-        } else {
+        }
+        else {
             prefix = "PP" + std::to_string(pp_counter++);
         }
 
