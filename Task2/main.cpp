@@ -3,6 +3,8 @@
 #include <vector>
 #include <queue>
 #include <climits>
+#include <algorithm>
+#include <utility>
 
 struct Edge {
     int target;
@@ -104,44 +106,7 @@ TaskGraph readGraph(const std::string& file_name) {
     return graph;
 }
 
-std::vector<int> BFS(TaskGraph& graph, std::vector<int>& TaskTimes) {
-    std::vector in_degree(graph.tasks, 0);
-
-    for (int i = 0; i < graph.tasks; ++i) {
-        for (const auto& edge : graph.graph[i]) {
-            in_degree[edge.target]++;
-        }
-    }
-
-    std::queue<int> queue;
-    for (int i = 0; i < graph.tasks; ++i) {
-        if (in_degree[i] == 0) {
-            queue.push(i);
-        }
-    }
-
-    std::vector<int> topological_sort;
-    std::vector times(graph.tasks, 0);
-    std::vector task_start_time(graph.tasks, 0);
-    int time = 0;
-
-    while (!queue.empty()) {
-        int current = queue.front();
-        queue.pop();
-        topological_sort.push_back(current);
-        times[current] += TaskTimes[current];
-        task_start_time[current] = time;
-
-        for (const auto& edge : graph.graph[current]) {
-            in_degree[edge.target]--;
-            if (in_degree[edge.target] == 0) {
-                queue.push(edge.target);
-            }
-        }
-    }
-    return topological_sort;
-}
-int LowestTime(TaskGraph& graph) {
+std::pair<std::vector<int>, std::vector<int>> LowestTime(TaskGraph& graph) {
     std::vector<int> TaskProcessors(graph.tasks);
     std::vector<int> TaskTimes(graph.tasks);
 
@@ -157,17 +122,100 @@ int LowestTime(TaskGraph& graph) {
         TaskProcessors[i] = min_proc;
         TaskTimes[i] = min_time;
     }
-    std::vector<int> topological_sort = BFS(graph, TaskTimes);
 
-    return 0;
+    return {TaskProcessors, TaskTimes};
 }
 
+std::tuple<std::vector<int>, std::vector<int>, int> BFS(const TaskGraph& graph, const std::vector<int>& TaskTimes, const std::vector<int>& TaskProcessors) {
+    std::vector in_degree(graph.tasks, 0);
+
+    for (int i = 0; i < graph.tasks; ++i) {
+        for (const auto& edge : graph.graph[i]) {
+            in_degree[edge.target]++;
+        }
+    }
+
+    std::queue<int> queue;
+    for (int i = 0; i < graph.tasks; ++i) {
+        if (in_degree[i] == 0) {
+            queue.push(i);
+        }
+    }
+
+    std::vector task_start_time(graph.tasks, 0);
+    std::vector earliest_start(graph.tasks, 0);
+    std::vector task_finish_time(graph.tasks, 0);
+    int makespan = 0;
+
+    while (!queue.empty()) {
+        int current = queue.front();
+        queue.pop();
+
+        task_start_time[current] = earliest_start[current];
+        task_finish_time[current] = earliest_start[current] + TaskTimes[current];
+        makespan = std::max(makespan, task_finish_time[current]);
+
+        for (const auto& edge : graph.graph[current]) {
+
+            // Czekamy na rodziców
+            earliest_start[edge.target] = std::max(earliest_start[edge.target], task_finish_time[current]);
+
+            in_degree[edge.target]--;
+            if (in_degree[edge.target] == 0) {
+                queue.push(edge.target);
+            }
+        }
+    }
+    return {task_start_time, task_finish_time, makespan};
+}
 
 int main() {
     std::string input= "../input.txt";
-    TaskGraph system = readGraph(input);
+    TaskGraph graph = readGraph(input);
 
-    int time = LowestTime(system);
+    auto [TaskProcessors, TaskTimes] = LowestTime(graph);
+    auto [task_start_time, task_finish_time, makespan] = BFS(graph, TaskTimes, TaskProcessors);
+
+    std::cout << "Najszybszy czas calkowity (Makespan): " << makespan << "\n\n";
+    std::cout << "Wykorzystana Architektura:\n";
+
+    int hc_counter = 0;
+    int pp_counter = 0;
+
+    for (int p = 0; p < graph.proc; ++p) {
+
+        // Naklejamy etykietę (HC0, PP0, HC1...)
+        std::string prefix;
+        if (graph.processors[p].type == 0) {
+            prefix = "HC" + std::to_string(hc_counter++);
+        } else {
+            prefix = "PP" + std::to_string(pp_counter++);
+        }
+
+        std::cout << prefix << ": ";
+
+        bool has_tasks = false;
+        bool first_task = true;
+
+        for (int i = 0; i < graph.tasks; ++i) {
+            if (TaskProcessors[i] == p) {
+                has_tasks = true;
+
+                // Przecinek przed każdym kolejnym
+                if (!first_task) std::cout << ", ";
+
+                std::cout << "T" << i << "(" << task_start_time[i] << ")";
+                first_task = false;
+            }
+        }
+
+        if (!has_tasks) {
+            std::cout << "brak";
+        }
+
+        std::cout << "\n";
+    }
+
 
     return 0;
 }
