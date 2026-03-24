@@ -106,7 +106,7 @@ TaskGraph readGraph(const std::string& file_name) {
     return graph;
 }
 
-std::pair<std::vector<int>, std::vector<int>> LowestTime(TaskGraph& graph) {
+std::pair<std::vector<int>, std::vector<int>> LowestTime(const TaskGraph& graph) {
     std::vector<int> TaskProcessors(graph.tasks);
     std::vector<int> TaskTimes(graph.tasks);
 
@@ -169,14 +169,46 @@ std::tuple<std::vector<int>, std::vector<int>, int> BFS(const TaskGraph& graph, 
     return {task_start_time, task_finish_time, makespan};
 }
 
+int CalculateCost(const TaskGraph& graph, const std::vector<int>& TaskProcessors) {
+    int total_cost = 0;
+    std::vector<int> pe_usage(graph.proc, 0);
+
+    for (int i = 0; i < graph.tasks; ++i) {
+        int p = TaskProcessors[i];
+        pe_usage[p]++;
+        total_cost += graph.costs[i][p];
+    }
+
+    for (int p = 0; p < graph.proc; ++p) {
+        if (pe_usage[p] > 0 && graph.processors[p].type == 1) {
+            total_cost += graph.processors[p].cost;
+        }
+    }
+
+    for (int c = 0; c < graph.bus; ++c) {
+        for (int p = 0; p < graph.proc; ++p) {
+            if (pe_usage[p] > 0 && graph.channels[c].connected_processor[p] == 1) {
+                if (graph.processors[p].type == 1) {
+                    total_cost += graph.channels[c].cost;
+                } else {
+                    total_cost += graph.channels[c].cost * pe_usage[p];
+                }
+            }
+        }
+    }
+
+    return total_cost;
+}
+
 int main() {
-    std::string input= "../input.txt";
+    std::string input= "../GRAF.200.txt";
     TaskGraph graph = readGraph(input);
 
     auto [TaskProcessors, TaskTimes] = LowestTime(graph);
     auto [task_start_time, task_finish_time, makespan] = BFS(graph, TaskTimes, TaskProcessors);
 
     std::cout << "Najszybszy czas calkowity (Makespan): " << makespan << "\n\n";
+    std::cout << "Koszt wykonania zadania: " << CalculateCost(graph, TaskProcessors) << "\n\n";
     std::cout << "Wykorzystana Architektura:\n";
 
     int hc_counter = 0;
@@ -184,7 +216,6 @@ int main() {
 
     for (int p = 0; p < graph.proc; ++p) {
 
-        // Naklejamy etykietę (HC0, PP0, HC1...)
         std::string prefix;
         if (graph.processors[p].type == 0) {
             prefix = "HC" + std::to_string(hc_counter++);
