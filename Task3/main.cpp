@@ -206,6 +206,8 @@ int main() {
     std::cout << "Wykorzystana Architektura:\n";
 
     std::vector<std::string> proc_names(graph.proc);
+    std::vector used_processors(graph.proc, false);
+
     int hc_counter = 0;
     int pp_counter = 0;
 
@@ -227,6 +229,7 @@ int main() {
         for (int i = 0; i < graph.tasks; ++i) {
             if (TaskProcessors[i] == p) {
                 has_tasks = true;
+                used_processors[p] = true; // Zaznaczamy, że ten procesor pracował
 
                 // Przecinek przed każdym kolejnym
                 if (!first_task) std::cout << ", ";
@@ -243,9 +246,8 @@ int main() {
         std::cout << "\n";
     }
 
-    // Dodane: Sprawdzamy, które kanały zostały użyte i wypisujemy
     std::cout << "\nWykorzystane Kanaly:\n";
-    std::vector<bool> used_channels(graph.bus, false);
+    std::vector used_channels(graph.bus, false);
 
     for (int i = 0; i < graph.tasks; ++i) {
         for (const auto& edge : graph.graph[i]) {
@@ -266,7 +268,7 @@ int main() {
 
             bool first_conn = true;
             for (int p = 0; p < graph.proc; ++p) {
-                if (graph.channels[c].connected_processor[p] == 1) {
+                if (graph.channels[c].connected_processor[p] == 1 && used_processors[p]) {
                     if (!first_conn) std::cout << ", ";
                     std::cout << proc_names[p];
                     first_conn = false;
