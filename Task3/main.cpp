@@ -177,7 +177,7 @@ std::tuple<std::vector<double>, std::vector<double>, double> BFS(const TaskGraph
             double communication_time = static_cast<double>(edge.weight) / graph.channels[channel].bandwidth;
 
             // Czekamy na rodziców
-            if (TaskProcessors[current] != TaskProcessors[edge.target]) {
+            if (TaskProcessors[current] != TaskProcessors[edge.target] || graph.processors[TaskProcessors[edge.target]].type == 0) {
                 earliest_start[edge.target] = std::max(earliest_start[edge.target], task_finish_time[current] + communication_time);
             }
             else {
