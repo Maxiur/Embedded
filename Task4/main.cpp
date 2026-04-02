@@ -9,6 +9,7 @@
 struct Edge {
     int target;
     int weight;
+    int totalSum{};
 };
 
 struct Processor {
@@ -108,44 +109,23 @@ TaskGraph readGraph(const std::string& file_name) {
     return graph;
 }
 
-std::tuple<std::vector<double>, std::vector<double>, double> BFS(const TaskGraph& graph, const std::vector<int>& TaskTimes, int PP_ProcessorID) {
-    std::vector in_degree(graph.tasks, 0);
-
+void InitializeValues(TaskGraph& graph, int PP_ProcessorID) {
     for (int i = 0; i < graph.tasks; ++i) {
-        for (const auto& edge : graph.graph[i]) {
-            in_degree[edge.target]++;
-        }
+        graph.graph[i][PP_ProcessorID].totalSum = graph.times[i][PP_ProcessorID];
+    }
+}
+
+int CalculateDP(TaskGraph& graph, int TaskIndex, int PP_ProcessorID, std::vector<int>& dp) {
+    if (dp[TaskIndex] != -1) {
+        return dp[TaskIndex];
     }
 
-    std::queue<int> queue;
-    for (int i = 0; i < graph.tasks; ++i) {
-        if (in_degree[i] == 0) {
-            queue.push(i);
-        }
+    int max_child_time = 0;
+
+    for (const auto& edge : graph.graph[TaskIndex] ) {
+        max_child_time = std::max(max_child_time, CalculateDP(graph, edge.target, PP_ProcessorID, dp));
     }
 
-    std::vector task_start_time(graph.tasks, 0.0);
-    std::vector earliest_start(graph.tasks, 0.0);
-    std::vector task_finish_time(graph.tasks, 0.0);
-    double makespan = 0.0;
-
-    while (!queue.empty()) {
-        int current = queue.front();
-        queue.pop();
-
-        task_start_time[current] = earliest_start[current];
-        task_finish_time[current] = earliest_start[current] + TaskTimes[current];
-        makespan = std::max(makespan, task_finish_time[current]);
-
-        for (const auto& edge : graph.graph[current]) {
-
-            earliest_start[edge.target] = std::max(earliest_start[edge.target], task_finish_time[current]);
-
-            in_degree[edge.target]--;
-            if (in_degree[edge.target] == 0) {
-                queue.push(edge.target);
-            }
-        }
-    }
-    return { task_start_time, task_finish_time, makespan };
+    dp[TaskIndex] = max_child_time + graph.times[TaskIndex][PP_ProcessorID];
+    return dp[TaskIndex];
 }
