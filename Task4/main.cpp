@@ -164,6 +164,25 @@ std::tuple<std::vector<double>, double> BFS(TaskGraph& graph, int PP_ProcessorID
     return {task_start_time, makespan};
 }
 
+int CalculateCost(const TaskGraph& graph, int PP_ProcessorID) {
+    int total_cost = 0;
+
+    total_cost += graph.processors[PP_ProcessorID].cost;
+
+    for (int i = 0; i < graph.tasks; ++i) {
+        total_cost += graph.costs[i][PP_ProcessorID];
+    }
+
+    for (int c = 0; c < graph.bus; ++c) {
+        if (graph.channels[c].connected_processor[PP_ProcessorID] == 1) {
+            total_cost += graph.channels[c].cost;
+            break;
+        }
+    }
+
+    return total_cost;
+}
+
 int Choose_PP_Index(const TaskGraph& graph) {
     for (int i = 0; i < graph.proc; ++i) {
         if (graph.processors[i].type == 1) {
@@ -192,6 +211,7 @@ int main() {
     auto [task_start_time, makespan] = BFS(graph, Used_PP_Processor);
 
     std::cout << "Najszybszy czas calkowity (Makespan): " << makespan << "\n\n";
+    std::cout << "Koszt Architektury: " << CalculateCost(graph, Used_PP_Processor) << "\n\n";
     std::cout << "Wykorzystana Architektura:\n";
 
     std::string prefix = "PP_" + std::to_string(Used_PP_Processor);
