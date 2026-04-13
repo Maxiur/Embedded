@@ -109,7 +109,7 @@ TaskGraph readGraph(const std::string& file_name) {
     return graph;
 }
 
-void scheduleTasks(const TaskGraph& graph, int T_max) {
+int scheduleTasks(const TaskGraph& graph, int T_max) {
     std::vector<int> in_degree(graph.tasks, 0);
     std::vector<std::vector<std::pair<int, int>>> predecessors(graph.tasks);
 
@@ -128,8 +128,7 @@ void scheduleTasks(const TaskGraph& graph, int T_max) {
     while (true) {
         attempts++;
 
-        // Kopia in-degree, bo będziemy ją modyfikować w trakcie próby
-        std::vector<int> current_in_degree = in_degree;
+        std::vector<int> current_in_degree = std::vector<int>(in_degree);
 
         std::vector<int> task_processor(graph.tasks, -1); // na jakim procku jest zadanie
         std::vector<int> task_finish_time(graph.tasks, 0); // o ktorej zadanie sie konczy
@@ -158,13 +157,13 @@ void scheduleTasks(const TaskGraph& graph, int T_max) {
                 int prev_proc = task_processor[prev_task];
 
                 if (graph.processors[prev_proc].type == 0) { // 0 to u Ciebie HC
-                    // Poprzednio był HC - MUSIMY wziąć nowy procesor
+                    // Poprzednio był HC - musimy wziąć nowy procesor
                     std::uniform_int_distribution<int> dist(0, graph.proc - 2);
                     do {
                         chosen_proc = dist(rng) % graph.proc;
                     } while (chosen_proc == prev_proc);
                 } else {
-                    // Nie było HC - losujemy: ten sam (np. 50% szans) czy inny?
+                    // Nie było HC - losujemy: ten sam lub inny
                     std::uniform_int_distribution<int> coin(0, 1);
                     if (coin(rng) == 0) {
                         chosen_proc = prev_proc;
@@ -183,34 +182,24 @@ void scheduleTasks(const TaskGraph& graph, int T_max) {
 
             for (const auto& pred : predecessors[current_task]) {
                 int p_id = pred.first;
-                int weight = pred.second;
-                int p_proc = task_processor[p_id];
-
-                int comm_delay = 0;
-                if (p_proc != chosen_proc) {
-                    comm_delay = weight; // Placeholder!
-                }
-
-                int time_when_data_arrives = task_finish_time[p_id] + comm_delay;
-                if (time_when_data_arrives > max_pred_finish_time) {
-                    max_pred_finish_time = time_when_data_arrives;
+                if (task_finish_time[p_id] > max_pred_finish_time) {
+                    max_pred_finish_time = task_finish_time[p_id];
                 }
             }
 
+            // Reszta zostaje bez zmian:
             int start_time = std::max(proc_available_time[chosen_proc], max_pred_finish_time);
             int finish_time = start_time + graph.times[current_task][chosen_proc];
 
-            // 4. SPRAWDZENIE HARD TIME CONSTRAINT
+            // SPRAWDZENIE HARD TIME CONSTRAINT
             if (finish_time > T_max) {
                 hard_constraint_failed = true;
                 break;
             }
-
             // Zapisujemy stany
             task_finish_time[current_task] = finish_time;
             proc_available_time[chosen_proc] = finish_time;
 
-            // 5. ODBLOKOWANIE NASTĘPNIKÓW
             for (const auto& edge : graph.graph[current_task]) {
                 current_in_degree[edge.target]--;
                 if (current_in_degree[edge.target] == 0) {
@@ -221,7 +210,7 @@ void scheduleTasks(const TaskGraph& graph, int T_max) {
 
         if (!hard_constraint_failed) {
             std::cout << "Znaleziono rozwiązanie po " << attempts << " próbach!\n";
-            break;
+            return *std::ranges::max_element(task_finish_time);
         }
     }
 }
@@ -229,10 +218,11 @@ void scheduleTasks(const TaskGraph& graph, int T_max) {
 int main() {
     TaskGraph graph = readGraph("../input.txt");
 
-    int T_max = 81;
+    int T_max = 75;
 
     if (graph.tasks > 0) {
-        scheduleTasks(graph, T_max);
+        int time = scheduleTasks(graph, T_max);
+        std::cout << time << std::endl;
     }
 
     return 0;
