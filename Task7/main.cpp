@@ -116,16 +116,12 @@ std::pair<std::vector<std::vector<std::pair<int, int>>>, std::vector<int>> gener
     return {graph, subtasks};
 }
 
-// ZMIENIONA FUNKCJA - klamerki lądują przy następnikach
 void printGraph(const std::vector<std::vector<std::pair<int, int>>>& graph, const std::vector<int>& subtasks, std::ostream& out = std::cout) {
     for (size_t i = 0; i < graph.size(); i++) {
-        // Główny task czysty: T<id> <liczba_nastepnikow>
         out << "T" << i << " " << graph[i].size() << " ";
 
-        // Lecimy po następnikach
         for (const auto& [target, weight] : graph[i]) {
             out << target;
-            // Jeśli cel (następnik) jest rozszerzony, walimy klamerkę z ilością subtasków
             if (subtasks[target] >= 2) {
                 out << "{" << subtasks[target] << "}";
             }
@@ -293,7 +289,7 @@ void generateOutput(const std::vector<std::vector<std::pair<int, int>>>& graph, 
 int main() {
     int weights_input;
 
-    std::cout << "--- GENERATOR GRAFOW ZADAN ---\n";
+    std::cout << "--- GENERATOR ROZSZERZONYCH GRAFOW ZADAN ---\n";
 
     std::cout << "Podaj liczbe zadan (tasks): ";
     std::cin >> input::tasks;
