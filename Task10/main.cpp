@@ -126,6 +126,7 @@ struct ScheduledTask {
 struct ProcPlan {
     std::string name;
     std::vector<ScheduledTask> tasks;
+    bool available = false;
 };
 
 std::vector<ProcPlan> readArchitecture(const std::string& filename, int proc_count, const TaskGraph& graph) {
@@ -159,6 +160,8 @@ std::vector<ProcPlan> readArchitecture(const std::string& filename, int proc_cou
             }
         }
         if (target_proc == -1) continue;
+
+        arch[target_proc].available = true;
 
         std::string tasks_str = line.substr(colon_pos + 1);
         std::stringstream ss(tasks_str);
@@ -252,33 +255,41 @@ void assignUnassignedTasks(const TaskGraph& graph, std::vector<ProcPlan>& archit
         int min_tasks = 1e9;
         int earliest_end = 1e9;
 
-        for (int p = 0; p < graph.proc; ++p) {
-            if (graph.processors[p].type == 1) { // PP ma type == 1
-                if (proc_task_count[p] <= min_tasks) {
-                    int max_parent_end = 0;
-                    for (const auto& parent : graph.parents[task]) {
-                        int parent_proc = task_info[parent.target].proc_id;
-                        if (parent_proc == -1) continue;
-                        int comm_time = get_comm_time(parent_proc, p, parent.weight);
-                        max_parent_end = std::max(max_parent_end, task_info[parent.target].end_time + comm_time);
-                    }
+            for (int p = 0; p < graph.proc; ++p) {
+                if (!architecture[p].available) {
+                    continue;
+                }
 
-                    int start_time = std::max(proc_ready_time[p], max_parent_end);
-                    int end_time = start_time + graph.times[task][p];
+                if (graph.processors[p].type == 1) { // PP ma type == 1
+                    if (proc_task_count[p] <= min_tasks) {
+                        int max_parent_end = 0;
+                        for (const auto& parent : graph.parents[task]) {
+                            int parent_proc = task_info[parent.target].proc_id;
+                            if (parent_proc == -1) continue;
+                            int comm_time = get_comm_time(parent_proc, p, parent.weight);
+                            max_parent_end = std::max(max_parent_end, task_info[parent.target].end_time + comm_time);
+                        }
 
-                    if (proc_task_count[p] < min_tasks || (proc_task_count[p] == min_tasks && end_time < earliest_end)) {
-                        min_tasks = proc_task_count[p];
-                        best_pp = p;
-                        earliest_end = end_time;
+                        int start_time = std::max(proc_ready_time[p], max_parent_end);
+                        int end_time = start_time + graph.times[task][p];
+
+                        if (proc_task_count[p] < min_tasks || (proc_task_count[p] == min_tasks && end_time < earliest_end)) {
+                            min_tasks = proc_task_count[p];
+                            best_pp = p;
+                            earliest_end = end_time;
+                        }
                     }
                 }
             }
-        }
 
         if (best_pp != -1) {
             int max_parent_end = 0;
             for (const auto& parent : graph.parents[task]) {
                 int parent_proc = task_info[parent.target].proc_id;
+                if (parent_proc == -1) {
+                    continue;
+                }
+
                 int comm_time = get_comm_time(parent_proc, best_pp, parent.weight);
                 max_parent_end = std::max(max_parent_end, task_info[parent.target].end_time + comm_time);
             }
@@ -307,14 +318,24 @@ int main() {
     assignUnassignedTasks(graph, architecture);
 
     std::vector<int> task_to_proc(graph.tasks, -1);
-    for (int p = 0; p < architecture.size(); ++p) {
+    for (int p = 0; p < (int)architecture.size(); ++p) {
+        if (!architecture[p].available) {
+            continue;
+        }
+
         for (const auto& task : architecture[p].tasks) {
-            task_to_proc[task.id] = p;
+            if (task.id >= 0 && task.id < graph.tasks) {
+                task_to_proc[task.id] = p;
+            }
         }
     }
 
     std::cout << "\n--- Zaktualizowana Architektura ---\n";
     for (const auto& p : architecture) {
+        if (!p.available) {
+            continue;
+        }
+
         std::cout << p.name << ": ";
         for (const auto& task : p.tasks) {
             std::cout << "T" << task.id << "(" << task.start_time << ") ";
@@ -334,7 +355,9 @@ int main() {
             int p_target = task_to_proc[edge.target];
             if (p_target != -1 && p_source != p_target) {
                 for (int c = 0; c < graph.bus; ++c) {
-                    if (graph.channels[c].connected_processor[p_source] == 1 &&
+                    if (architecture[p_source].available &&
+                        architecture[p_target].available &&
+                        graph.channels[c].connected_processor[p_source] == 1 &&
                         graph.channels[c].connected_processor[p_target] == 1) {
                         used_channels[c] = true;
                     }
@@ -351,7 +374,8 @@ int main() {
 
             bool first_conn = true;
             for (int p = 0; p < graph.proc; ++p) {
-                if (graph.channels[c].connected_processor[p] == 1) {
+                if (architecture[p].available &&
+                    graph.channels[c].connected_processor[p] == 1) {
                     if (!first_conn) std::cout << ", ";
                     std::cout << architecture[p].name;
                     first_conn = false;
