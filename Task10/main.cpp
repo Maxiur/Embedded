@@ -50,7 +50,7 @@ TaskGraph readGraph(const std::string& file_name) {
     std::string trash_string;
     char trash_char;
 
-// Zadania (@tasks)
+    // Zadania (@tasks)
     input >> trash_string >> graph.tasks;
 
     graph.graph.resize(graph.tasks);
@@ -333,7 +333,6 @@ int main() {
         for (const auto& edge : graph.graph[i]) {
             int p_target = task_to_proc[edge.target];
             if (p_target != -1 && p_source != p_target) {
-                // Znajdź kanał łączący te dwa procki
                 for (int c = 0; c < graph.bus; ++c) {
                     if (graph.channels[c].connected_processor[p_source] == 1 &&
                         graph.channels[c].connected_processor[p_target] == 1) {
